@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吃豆人游戏</title>
+    <style>
+        html,
+        body,
+        #box {
+            width: 100%;
+            height: 100%;
+            background-color: black;
+        }
+
+        #box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="box">
+        <canvas id="canvas" width="420" height="520"></canvas>
+    </div>
+    <script>
+        var canvas = document.querySelector("#canvas")
+        var ctx = canvas.getContext("2d")
+        var wall = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0],
+            [0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0],
+            [0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0],
+            [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ]
+
+        var gameState = 0
+        var time
+        var pacX = 0
+        var pacY = 1
+        var pacState = "r"
+        var pacImg = new Image()
+        var ghosts = []
+        var ghostStates = ["t", "r", "b", "l"]
+        var ghostImg = new Image()
+        ghostImg.src = "images/ghost.png"
+        var score = 0
+        var life = 3
+        var temp
+
+
+
+
+        // 定时刷新
+        time = setInterval(() => {
+            run()
+        }, 200);
+
+        // 场景判断
+        function run() {
+            ctx.clearRect(0, 0, 420, 420)
+            if (gameState == 0) {
+                if(temp==null) {
+                    temp=prompt("请输入姓名！","")
+                }
+                start()
+            } else if (gameState == 1) {
+                over()
+            }
+        }
+        // 开始场景
+        function start() {
+            drawWall()
+            drawPac()
+            drawGhost()
+            drawScore()
+        }
+
+        // 结束场景
+        function over() {
+            
+        }
+
+        // 绘制成绩
+        function drawScore() {
+            if(life<=0) {
+                gameState=1
+            }
+
+            // if() {
+
+            // }
+            ctx.font="bold 18px Arial"
+            ctx.fillStyle="blue"
+            ctx.strokeStyle="#ffffff"
+            ctx.fillRect(0,420,100,50) 
+            ctx.strokeRect(0,420,100,50)
+            ctx.fillStyle="#ffffff"
+            ctx.fillText(score+"分",40,450)
+            ctx.fillStyle="blue"
+            ctx.fillRect(320,420,100,50)
+            ctx.strokeRect(320,420,100,50)
+            ctx.fillStyle="#ffffff"
+            ctx.fillText("生命："+life,330+15,420+30)
+        }
+
+        
+        // 绘制墙和豆子
+        function drawWall() {
+            for (var i = 0; i < wall.length; i++) {
+                var y = wall[i]
+                for (var j = 0; j < y.length; j++) {
+                    if (wall[i][j] == 0) {
+                        ctx.fillStyle = "blue"
+                        ctx.strokeStyle = "#ffffff"
+                        ctx.fillRect(j * 30, i * 30, 30, 30)
+                        ctx.strokeRect(j * 30, i * 30, 30, 30)
+                    } else if (wall[i][j] == 1) {
+                        ctx.fillStyle = "yellow"
+                        ctx.beginPath()
+                        ctx.arc(j * 30 + 15, i * 30 + 15, 6, 0, Math.PI * 2)
+                        ctx.fill()
+                    }
+                }
+            }
+        }
+
+        // 绘制吃豆人
+        function drawPac() {
+            if (pacState == "t") {
+                pacImg.src = "images/ep-t.png"
+                pacY--
+                if (wall[pacY][pacX] == 0) {
+                    pacY++
+                }
+            } else if (pacState == "r") {
+                pacImg.src = "images/ep-r.png"
+                pacX++
+                if (wall[pacY][pacX] == 0) {
+                    pacX--
+                }
+            } else if (pacState == "b") {
+                pacImg.src = "images/ep-b.png"
+                pacY++
+                if (wall[pacY][pacX] == 0) {
+                    pacY--
+                }
+            } else if (pacState == "l") {
+                pacImg.src = "images/ep-l.png"
+                pacX--
+                if (wall[pacY][pacX] == 0) {
+                    pacX++
+                }
+            }
+            if (wall[pacY][pacX] == 1) {
+                wall[pacY][pacX] = 2
+                score+=10
+            }
+            
+            ctx.drawImage(pacImg, pacX * 30, pacY * 30, 30, 30)
+        }
+
+
+
+        // 创建幽灵
+        function createGhost() {
+            for (var i = 0; i < 3; i++) {
+                ghosts[i] = {
+                    x: Random(1, 12),
+                    y: Random(6, 12),
+                    state: "r"
+                }
+                if (wall[ghosts[i].y][ghosts[i].x] == 0) {
+                    createGhost()
+                }
+            }
+        }
+
+
+        // 绘制幽灵
+        function drawGhost() {
+            for (var i = 0; i < ghosts.length; i++) {
+                if (ghosts[i].state == "t") {
+                    ghosts[i].y--
+                    if (wall[ghosts[i].y][ghosts[i].x] == 0) {
+                        ghosts[i].y++
+                        ghostDirection(i)
+                    }
+                } else if (ghosts[i].state == "r") {
+                    ghosts[i].x++
+                    if (wall[ghosts[i].y][ghosts[i].x] == 0) {
+                      ghosts[i].x--
+                        ghostDirection(i)
+                    }
+                } else if (ghosts[i].state == "b") {
+                    ghosts[i].y++
+                    if (wall[ghosts[i].y][ghosts[i].x] == 0) {
+                        ghosts[i].y--
+                        ghostDirection(i)
+                    }
+                } else if (ghosts[i].state == "l") {
+                    ghosts[i].x--
+                    if (wall[ghosts[i].y][ghosts[i].x] == 0) {
+                        ghosts[i].x++
+                        ghostDirection(i)
+                    }
+                }
+                if(ghosts[i].x==pacX) {
+                    if(ghosts[i].y==pacY) {
+                        life--
+                    }
+                }
+                ctx.drawImage(ghostImg, ghosts[i].x * 30, ghosts[i].y * 30, 30, 30)
+            }
+        }
+
+        // 幽灵方向
+        function ghostDirection(i) {
+            var tmp = Random(0, 3)
+            ghosts[i].state = ghostStates[tmp]
+        }
+
+        // 键盘事件
+        window.addEventListener("keyup", function (e) {
+            console.log(e.keyCode);
+            if (e.keyCode == 87) {
+                pacState = "t"
+            } else if (e.keyCode == 68) {
+                pacState = "r"
+            } else if (e.keyCode == 83) {
+                pacState = "b"
+            } else if (e.keyCode == 65) {
+                pacState = "l"
+            }
+        })
+
+        // 随机函数
+        function Random(min, max) {
+            return Math.floor(Math.random() * (max - min) + 1) + min
+        }
+        createGhost()
+    </script>
+</body>
+
+</html>

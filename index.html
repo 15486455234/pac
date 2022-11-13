@@ -1,0 +1,381 @@
+<!--
+ * @Description: 文件用于
+ * @Author: dezhi
+ * @Date: 2022-09-04 19:47:48
+ * @LastEditTime: 2022-09-05 01:27:27
+ * @LastEditors: dezhi
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>吃豆人</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				background-color: #000;
+			}
+
+			.container {
+				position: relative;
+				width: 420px;
+				margin: 100px auto;
+			}
+
+			.page-over,
+			.page-start {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				background-color: rgba(0, 0, 0, .6);
+				display: none;
+			}
+
+			.page-over {
+				color: #fff;
+			}
+
+			.user-name {
+				padding: 10px;
+				border-radius: 4px;
+				margin-bottom: 20px;
+			}
+
+			.btn-start {
+				padding: 10px 20px;
+				border-radius: 4px;
+				color: #fff;
+				text-align: center;
+				background-color: #1195ca;
+				outline: none;
+				border: none;
+			}
+
+			.panel-top {
+				display: flex;
+				justify-content: space-between;
+			}
+
+			.life-panel,
+			.score-panel {
+				color: #fff;
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<div class="container">
+			<div class="panel-top">
+				<p class="score-panel">
+					分数：<span id="score">0</span>
+				</p>
+				<p class="life-panel">
+					生命： <span id="life">3</span>
+				</p>
+			</div>
+			<!-- 游戏运行界面的标签 canvas -->
+			<canvas id="canvas" class="canvas" width="420" height="420"></canvas>
+			<!-- 游戏开始的时候界面 -->
+			<div class="page-start">
+				<input class="user-name" type="text" placeholder="请输入玩家姓名">
+				<button id="btnStart" class="btn-start">开始游戏</button>
+			</div>
+			<div class="page-over" id="pageOver">
+				<span>游戏结束</span>
+			</div>
+		</div>
+
+		<script>
+			// 横坐标：0到13
+			var $canvas = document.getElementById('canvas');
+			var ctx = $canvas.getContext('2d');
+			// 砖块的宽和高
+			var unit = 30
+			// 圆形的半径
+			var beanR = 6
+			var pageOver = document.getElementById('pageOver')
+			var scorePanel = document.getElementById('score')
+			var lifePanel = document.getElementById('life')
+
+			var score = 0
+
+
+			var ep = new Image()
+			ep.src = './images/ep-r.png'
+			// 吃豆人原始坐标
+			var epPoint = {
+				x: 1,
+				y: 1
+			}
+			var superStatus = false
+			// 吃豆人初始生命值
+			var life = 3
+			// var direct = ['t', 'b', 'l', 'r']
+			var currentDirect = 'r' // 当前方向
+
+
+			var ghost = new Image()
+			ghost.src = './images/ghost.png'
+			// 幽灵的初始坐标
+			var ghostPoint = [{
+				direct: 'r'
+			}, {
+				direct: 'r'
+			}, {
+				direct: 'r'
+			}]
+
+
+			// 每个坐标的集中状态：
+			// 0：石头
+			// 1：豆子
+			// 2：空状态
+			var _data = [
+				[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+				[0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+				[0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+				[0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+				[0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+				[0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+				[0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0],
+				[0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0],
+				[0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+				[0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0],
+				[0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0],
+				[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+				[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+				[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+			]
+
+
+
+			//1、 游戏初始化
+			function init() {
+				createGhostPoint()
+				// drawSceneGame()
+				setInterval(function() {
+					drawSceneGame()
+				}, 500)
+			}
+
+			// 2、绘制游戏场景
+			function drawSceneGame() {
+				ctx.clearRect(0, 0, 420, 420)
+
+				// 1、绘制静态的游戏界面
+				drawWall()
+				// 2、绘制吃豆人
+				drawEP()
+				// 3、绘制幽灵
+				drawGhost()
+				// 4、碰撞监测
+				crashTest()
+				// 5、绘制分数
+				drawScore()
+			}
+
+			function gameOver() {
+				pageOver.style.display = block
+			}
+			// 绘制墙体和豆子
+			function drawWall() {
+				for (let y = 0; y < _data.length; y++) {
+					const yData = _data[y];
+					for (let x = 0; x < yData.length; x++) {
+						const item = yData[x];
+						if (item == 0) {
+							drawStone(x, y)
+						} else if (item == 1) {
+							drawBean(x, y)
+						}
+					}
+				}
+			}
+			// 绘制石头
+			function drawStone(x, y) {
+				ctx.fillStyle = '#020088';
+				ctx.strokeStyle = '#fff';
+				ctx.fillRect(x * unit, y * unit, unit, unit)
+				ctx.strokeRect(x * unit, y * unit, unit, unit)
+			}
+			// 绘制豆子
+			function drawBean(x, y) {
+				ctx.fillStyle = '#9ab60a';
+				ctx.beginPath();
+				ctx.arc(x * unit + 15, y * unit + 15, beanR, 0, Math.PI * 2);
+				ctx.fill();
+			}
+			// 绘制吃豆人
+			function drawEP() {
+				epMove()
+				ctx.drawImage(ep, epPoint.x * unit, epPoint.y * unit, unit, unit)
+			}
+			// 吃豆人移动
+			function epMove() {
+				if (currentDirect == 't') {
+					ep.src = './images/ep-t.png'
+					epPoint.y--
+					if (_data[epPoint.y][epPoint.x] == 0) {
+						epPoint.y++
+					}
+				} else if (currentDirect == 'b') {
+					ep.src = './images/ep-b.png'
+					epPoint.y++
+					if (_data[epPoint.y][epPoint.x] == 0) {
+						epPoint.y--
+					}
+				} else if (currentDirect == 'l') {
+					ep.src = './images/ep-l.png'
+					epPoint.x--
+					if (_data[epPoint.y][epPoint.x] == 0) {
+						epPoint.x++
+					}
+				} else {
+					ep.src = './images/ep-r.png'
+					epPoint.x++
+					if (_data[epPoint.y][epPoint.x] == 0) {
+						epPoint.x--
+					}
+				}
+				// 吃到豆子了
+				if (_data[epPoint.y][epPoint.x] == 1) {
+					score += 10
+					_data[epPoint.y][epPoint.x] = 2
+				}
+			}
+
+			function drawScore() {
+				scorePanel.innerText = score
+			}
+
+			function crashTest() {
+				for (let i = 0; i < 3; i++) {
+					if (ghostPoint[i].x == epPoint.x && ghostPoint[i].y == epPoint.y) {
+						life--
+						lifePanel.innerText = life
+						// superStatus = true
+						// setTimeout(function() {
+						// 	superStatus = false
+						// }, 3000)
+					}
+				}
+				if (life == 0) {
+					gameOver()
+				}
+			}
+
+
+
+			// 幽灵坐标初始化
+			function createGhostPoint() {
+				var x, y
+				for (let i = 0; i < ghostPoint.length; i++) {
+					x = mkRandom(1, 12)
+					y = mkRandom(6, 12)
+					ghostPoint[i] = {
+						x,
+						y,
+						direct: 'r'
+					}
+					if (_data[y][x] == 0) {
+						createGhostPoint()
+					}
+				}
+			}
+			// 绘制幽灵
+			function drawGhost(x, y) {
+				ghostMove()
+				for (let i = 0; i < 3; i++) {
+					ctx.drawImage(ghost, ghostPoint[i].x * unit, ghostPoint[i].y * unit, unit, unit)
+				}
+			}
+			// 幽灵移动
+			function ghostMove() {
+				for (let i = 0; i < 3; i++) {
+					if (ghostPoint[i].direct == 't') {
+						ghostPoint[i].y--
+						if (_data[ghostPoint[i].y][ghostPoint[i].x] == 0) {
+							ghostPoint[i].y++
+							ghostPoint[i].direct = ghostDirect()
+						}
+					} else if (ghostPoint[i].direct == 'b') {
+						ghostPoint[i].y++
+						if (_data[ghostPoint[i].y][ghostPoint[i].x] == 0) {
+							ghostPoint[i].y--
+							ghostPoint[i].direct = ghostDirect()
+						}
+					} else if (ghostPoint[i].direct == 'l') {
+						ghostPoint[i].x--
+						if (_data[ghostPoint[i].y][ghostPoint[i].x] == 0) {
+							ghostPoint[i].x++
+							ghostPoint[i].direct = ghostDirect()
+						}
+					} else {
+						ghostPoint[i].x++
+						if (_data[ghostPoint[i].y][ghostPoint[i].x] == 0) {
+							ghostPoint[i].x--
+							ghostPoint[i].direct = ghostDirect()
+						}
+					}
+				}
+				console.log(ghostPoint)
+			}
+			// 幽灵移动方向
+			function ghostDirect() {
+				var d = mkRandom(0, 3)
+				var direct;
+				if (d == 0) {
+					direct = 't'
+				} else if (d == 1) {
+					direct = 'b'
+				} else if (d == 2) {
+					direct = 'l'
+				} else {
+					direct = 'r'
+				}
+				return direct
+			}
+			// 随机数
+			function mkRandom(min, max) {
+				return Math.floor(Math.random() * (max - min + 1)) + min
+			}
+
+			window.onload = function() {
+				init()
+			}
+
+			window.onkeydown = function(e) {
+				switch (e.keyCode) {
+					case 39: //右
+						currentDirect = 'r';
+						break;
+					case 40: //下
+						currentDirect = 'b';
+						break;
+					case 37: //左
+						currentDirect = 'l';
+						break;
+					case 38: //上
+						currentDirect = 't';
+						break;
+				}
+			}
+		</script>
+
+	</body>
+
+</html>

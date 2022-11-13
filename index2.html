@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>吃豆人游戏</title>
+	<style>
+		html,
+		body,
+		#box {
+			width: 100%;
+			height: 100%;
+		}
+
+		#box {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#fenshu {
+			top: 0;
+			color: brown;
+		}
+
+		#canvas {
+			bottom: 0;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="box">
+		<div id="fenshu"></div>
+		<canvas id="canvas" width="420" height="420"></canvas>
+	</div>
+	<script>
+		var canvas = document.querySelector("#canvas")
+		var ctx = canvas.getContext("2d")
+		var fenshubox = document.querySelector("#fenshu")
+		console.log(ctx);
+		// 0代表豆子 1代表石头  2代表空
+		var wall = [
+			[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+			[1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+			[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+			[1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1],
+			[1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1],
+			[1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1],
+			[1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1],
+			[1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1],
+			[1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1],
+			[1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1],
+			[1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+			[1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1],
+			[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+			[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		]
+		var gostState = ["t", "r", "b", "l"] // 幽灵方向容器  上右下左
+		var pacImg = new Image()
+		var ghostImg = new Image()
+		ghostImg.src = "images/ghost.png"
+
+		var admintime
+
+		var score = 0
+		var life = 3
+
+		var temp
+		var input = ""
+		// 游戏场景
+		var game = {
+			state: 0, //0代表游戏开始中场景  1代表游戏进行中场景 2代表游戏结束场景
+			// 初始化
+			into() {
+				ghost.createGhost()
+				var $this = this
+				setInterval(() => {
+					this.run()
+					for (var i = 0; i < ghost.ghosts.length; i++) {
+						console.log(pac.pacX + "=" + ghost.ghosts[i].x + "  " + pac.pacY + "=" + ghost.ghosts[i].y);
+					}
+				}, 500)
+				admintime = requestAnimationFrame(function fn() {
+					ctx.clearRect(0, 0, 420, 420)
+					$this.drawWall()
+					ghost.drawGhost()
+					ctx.drawImage(pacImg, pac.pacX * 30, pac.pacY * 30, 30, 30)
+					admintime = requestAnimationFrame(fn)
+				})
+			},
+
+			// 场景判断
+			run() {
+				if (this.state == 0) {
+					if (input == "") {
+						input = prompt("请输入你的名字", "")
+					} else if (input.length > 0) {
+						this.start(input)
+					}
+				} else if (this.state == 1) {
+					this.yun()
+				} else if (this.state == 2) {
+					this.over()
+				}
+			},
+
+			// 开始时场景 
+			start(ipt) {
+				pac.drawPac()
+				ghost.moveGhost()
+				pac.lifeTest()
+				fenshubox.innerHTML = ipt + "<br />" + "成绩：" + score + "分" + "<br />生命:" + life
+			},
+
+			// 结束时场景
+			over() {
+				cancelAnimationFrame(admintime)
+				this.drawScore()
+			},
+
+			// 绘制墙和豆子
+			drawWall() {
+				for (var i = 0; i < wall.length; i++) {
+					var y = wall[i]
+					for (var j = 0; j < y.length; j++) {
+						if (y[j] == 1) {
+							ctx.fillStyle = "blue"
+							ctx.strokeStyle = "#ffffff"
+							ctx.fillRect(j * 30, i * 30, 30, 30)
+							ctx.strokeRect(j * 30, i * 30, 30, 30)
+						} else if (y[j] == 0) {
+							ctx.beginPath()
+							ctx.fillStyle = "yellow"
+							ctx.arc(j * 30 + 15, i * 30 + 15, 6, 0, Math.PI * 2)
+							ctx.fill()
+						}
+					}
+				}
+			},
+			// 绘制分数
+			drawScore() {
+				if (life <= 0) {
+					ctx.fillStyle = "#e33e31"
+					ctx.fillRect(0, 0, 420, 420)
+					ctx.fillStyle = "#000000"
+					ctx.font = "bold 48px Arial"
+					ctx.fillText("游戏失败！", 110, 50)
+				} else if (life > 0) {
+					ctx.fillStyle = "#e33e31"
+					ctx.fillRect(0, 0, 420, 420)
+					ctx.fillStyle = "#000000"
+					ctx.font = "bold 48px Arial"
+					ctx.fillText("游戏胜利！", 110, 50)
+					ctx.font = "bold 32px Arial"
+					ctx.fillText("最终得分：" + score + life * 100, 90, 90)
+				}
+			}
+		}
+		// 吃豆人
+		var pac = {
+			state: "r", //方向
+			pacX: 1, // 坐标
+			pacY: 1,
+			// 绘制吃豆人
+			drawPac() {
+				var $this = this
+				if ($this.state == "t") {
+					pacImg.src = "images/ep-t.png"
+					$this.pacY -= 1
+					if (wall[$this.pacY][$this.pacX] == 1) {
+						$this.pacY++
+					} else if (wall[$this.pacY][$this.pacX] == 0) {
+						score += 10
+						wall[$this.pacY][$this.pacX] = 2
+					}
+					ghost.ghosts.forEach(function (item) {
+						if ($this.pacY + 1 == item.y) {
+							if (item.direct == "b") {
+								life--
+							}
+						}
+					})
+				} else if ($this.state == "r") {
+					pacImg.src = "images/ep-r.png"
+					$this.pacX += 1
+					if (wall[$this.pacY][$this.pacX] == 1) {
+						this.pacX--
+					} else if (wall[$this.pacY][$this.pacX] == 0) {
+						score += 10
+						wall[$this.pacY][$this.pacX] = 2
+					}
+					ghost.ghosts.forEach(function (item) {
+						if ($this.pacX - 1 == item.x) {
+							if (item.direct == "l") {
+								life--
+
+							}
+						}
+					})
+				} else if ($this.state == "b") {
+					pacImg.src = "images/ep-b.png"
+					$this.pacY += 1
+					if (wall[$this.pacY][$this.pacX] == 1) {
+						this.pacY--
+					} else if (wall[$this.pacY][$this.pacX] == 0) {
+						score += 10
+						wall[$this.pacY][$this.pacX] = 2
+					}
+					ghost.ghosts.forEach(function (item) {
+						if ($this.pacY - 1 == item.y) {
+							if (item.direct == "t") {
+								life--
+
+							}
+						}
+					})
+				} else if ($this.state == "l") {
+					pacImg.src = "images/ep-l.png"
+					$this.pacX -= 1
+					if (wall[$this.pacY][$this.pacX] == 1) {
+						this.pacX++
+					} else if (wall[$this.pacY][$this.pacX] == 0) {
+						score += 10
+						wall[$this.pacY][$this.pacX] = 2
+					}
+					ghost.ghosts.forEach(function (item) {
+						if ($this.pacX + 1 == item.x) {
+							if (item.direct == "r") {
+								life--
+							}
+						}
+					})
+				}
+				// 分数判断
+				if (score >= 990) {
+					game.state = 2
+				}
+
+
+			},
+			// 生命值判断
+			lifeTest() {
+				for (var i = 0; i < ghost.ghosts.length; i++) {
+					if (pac.pacX == ghost.ghosts[i].x && pac.pacY == ghost.ghosts[i].y) {
+						life--
+					}
+				}
+				if (life <= 0) {
+					game.state = 2
+				}
+				// console.log(life);
+			}
+
+
+
+		}
+		// 幽灵
+		var ghost = {
+			ghosts: [], // 幽灵坐标
+			// 创建幽灵坐标
+			createGhost() {
+				for (var i = 0; i <= 2; i++) {
+					this.ghosts[i] = {
+						x: Random(1, 12),
+						y: Random(6, 12),
+						direct: "r"
+					}
+					if (wall[this.ghosts[i].y][this.ghosts[i].x] == 1) {
+						this.createGhost()
+					}
+				}
+
+
+			},
+			// 绘制幽灵
+			drawGhost() {
+				for (var u = 0; u < this.ghosts.length; u++) {
+					ctx.drawImage(ghostImg, this.ghosts[u].x * 30, this.ghosts[u].y * 30, 30, 30)
+				}
+			},
+			// 幽灵移动
+			moveGhost() {
+				for (var i = 0; i < this.ghosts.length; i++) {
+					if (this.ghosts[i].direct == "t") {
+						this.ghosts[i].y--
+						if (wall[this.ghosts[i].y][this.ghosts[i].x] == 1) {
+							this.ghosts[i].y++
+							this.walltest(i)
+						}
+					} else if (this.ghosts[i].direct == "r") {
+						this.ghosts[i].x++
+						if (wall[this.ghosts[i].y][this.ghosts[i].x] == 1) {
+							this.ghosts[i].x--
+							this.walltest(i)
+						}
+					} else if (this.ghosts[i].direct == "b") {
+						this.ghosts[i].y++
+						if (wall[this.ghosts[i].y][this.ghosts[i].x] == 1) {
+							this.ghosts[i].y--
+							this.walltest(i)
+						}
+					} else if (this.ghosts[i].direct == "l") {
+						this.ghosts[i].x--
+						if (wall[this.ghosts[i].y][this.ghosts[i].x] == 1) {
+							this.ghosts[i].x++
+							this.walltest(i)
+						}
+					}
+				}
+			},
+			// 方向判断
+			walltest(i) {
+				var mp = Random(0, 3)
+				this.ghosts[i].direct = gostState[mp]
+			}
+		}
+		// 随机函数
+		function Random(min, max) {
+			return Math.floor(Math.random() * (max - min + 1)) + min
+		}
+		// 键盘事件绑定
+		window.addEventListener("keydown", function (e) {
+			if (e.keyCode == 87) {
+				pac.state = "t"
+			} else if (e.keyCode == 68) {
+				pac.state = "r"
+			} else if (e.keyCode == 83) {
+				pac.state = "b"
+			} else if (e.keyCode == 65) {
+				pac.state = "l"
+			}
+		})
+		game.into()
+	</script>
+</body>
+
+</html>
